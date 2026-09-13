@@ -2,31 +2,50 @@
 AI Inventory Agent:
 Monitors real-time stock levels, detects critical stockouts,
 generates inventory rebalancing recommendations, and optimizes safety stock.
+Applies:
+- Inheritance: Subclasses BaseAgent.
+- Abstraction & Polymorphism: Implements abstract run() and get_health_status() contracts.
+- Encapsulation: Encapsulates network scorecard mathematics and safety threshold rules.
 """
-from typing import List, Dict, Any
+from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.models.inventory import Inventory
 from app.models.warehouse import Warehouse
 from app.models.product import Product
-from app.schemas.inventory_schema import LowStockAlert, RebalanceRecommendation
 from app.services.inventory_service import get_stock_alerts
 from app.services.allocation_service import generate_rebalance_recommendations
+from app.agents.base_agent import BaseAgent
+from app.agents.reasoning import ReasoningEngine
 
 
-class InventoryAgent:
+class InventoryAgent(BaseAgent):
     """
     Intelligent Agent for Multi-Warehouse Inventory Health and Optimization.
     """
 
-    def __init__(self):
-        self.llm_enabled = bool(settings.ENABLE_LLM_AGENT and settings.OPENAI_API_KEY)
+    def __init__(self, reasoning_engine: Optional[ReasoningEngine] = None):
+        super().__init__(
+            name="Inventory Health Agent",
+            description="Monitors multi-warehouse inventory levels, safety thresholds, and rebalances.",
+            agent_type="INVENTORY_OPTIMIZATION",
+            reasoning_engine=reasoning_engine,
+        )
+
+    @property
+    def llm_enabled(self) -> bool:
+        return bool(settings.ENABLE_LLM_AGENT and settings.OPENAI_API_KEY)
+
+    def run(self, db: Session, **kwargs) -> Dict[str, Any]:
+        """Polymorphic execution entrypoint."""
+        return self.assess_network_health(db)
 
     def assess_network_health(self, db: Session) -> Dict[str, Any]:
         """
         Calculates an overall health scorecard of the warehouse inventory network.
         """
+        self._increment_executions()
         inventories = db.query(Inventory).all()
         warehouses = db.query(Warehouse).filter(Warehouse.is_active.is_(True)).all()
         products = db.query(Product).all()
@@ -47,7 +66,15 @@ class InventoryAgent:
         health_score -= (low_count * 5.0)
         health_score = max(0.0, min(100.0, health_score))
 
-        health_status = "EXCELLENT" if health_score >= 85 else "GOOD" if health_score >= 70 else "NEEDS_ATTENTION" if health_score >= 50 else "CRITICAL"
+        health_status = (
+            "EXCELLENT"
+            if health_score >= 85
+            else "GOOD"
+            if health_score >= 70
+            else "NEEDS_ATTENTION"
+            if health_score >= 50
+            else "CRITICAL"
+        )
 
         insights = self._generate_insights(
             health_score, health_status, critical_count, low_count, len(rebalances), total_stock
@@ -85,6 +112,15 @@ class InventoryAgent:
             f"Supply chain optimal ({score}/100 - {status}). All active warehouses maintained above safety thresholds "
             f"with {total_stock} total units readily available."
         )
+
+    def get_health_status(self) -> Dict[str, Any]:
+        return {
+            "agent_name": self._name,
+            "type": self._agent_type,
+            "status": "HEALTHY",
+            "executions_performed": self._execution_count,
+            "llm_reasoning_active": self.llm_enabled,
+        }
 
 
 inventory_agent = InventoryAgent()

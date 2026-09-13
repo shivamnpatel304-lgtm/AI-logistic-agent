@@ -1,16 +1,17 @@
 """
-Product database model
+Product database model.
+Applies:
+- Inheritance: Inherits common columns and behaviors from BaseEntity.
+- Encapsulation: Encapsulates dimensional calculations and cold chain requirements.
 """
-from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime
+from sqlalchemy import Column, String, Float, Boolean
 from sqlalchemy.orm import relationship
-from app.database.connection import Base
+from app.models.base import BaseEntity
 
 
-class Product(Base):
+class Product(BaseEntity):
     __tablename__ = "products"
 
-    id = Column(Integer, primary_key=True, index=True)
     sku = Column(String(64), unique=True, index=True, nullable=False)
     name = Column(String(255), nullable=False)
     category = Column(String(100), default="General")
@@ -19,8 +20,28 @@ class Product(Base):
     volume_m3 = Column(Float, nullable=False, default=0.01)
     is_perishable = Column(Boolean, default=False)
     requires_cold_chain = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
     inventory_items = relationship("Inventory", back_populates="product", cascade="all, delete-orphan")
     order_items = relationship("OrderItem", back_populates="product")
+
+    @property
+    def is_temperature_controlled(self) -> bool:
+        """Encapsulated check for temperature regulation requirements."""
+        return bool(self.is_perishable or self.requires_cold_chain)
+
+    def compute_bulk_metrics(self, quantity: int) -> dict:
+        """
+        Encapsulates calculations of combined weight, volume, and total price for a given batch.
+        """
+        if quantity < 0:
+            raise ValueError("Quantity cannot be negative")
+        return {
+            "total_weight_kg": round(self.weight_kg * quantity, 3),
+            "total_volume_m3": round(self.volume_m3 * quantity, 4),
+            "total_price": round(self.unit_price * quantity, 2),
+            "requires_reefer": self.is_temperature_controlled,
+        }
+
+    def __repr__(self) -> str:
+        return f"<Product(sku='{self.sku}', name='{self.name}')>"

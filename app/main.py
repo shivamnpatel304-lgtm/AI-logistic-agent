@@ -14,6 +14,7 @@ from app.api.routes import (
     allocation_router,
     logistics_router,
 )
+from app.agents.orchestrator import orchestrator
 
 
 @asynccontextmanager
@@ -60,6 +61,12 @@ def root():
         "docs_url": "/docs",
         "api_v1": settings.API_V1_STR,
         "llm_agent_enabled": bool(settings.ENABLE_LLM_AGENT and settings.OPENAI_API_KEY),
+        "oop_architecture": {
+            "encapsulation": "Domain models and encapsulated services with state invariants",
+            "abstraction": "Abstract Base Classes (BaseAgent, BaseService, AbstractAllocationStrategy, ReasoningEngine)",
+            "inheritance": "Hierarchical extension from BaseEntity, BaseService, and BaseAgent",
+            "polymorphism": "Interchangeable agent orchestration and strategy pattern fulfillment",
+        },
     }
 
 
@@ -68,6 +75,7 @@ def health_check():
     return {
         "status": "healthy",
         "database": "connected",
+        "agents": orchestrator.get_system_health(),
     }
 
 

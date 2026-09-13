@@ -3,6 +3,7 @@ Models module initialization
 Exports all SQLAlchemy models for clean imports and Base registration.
 """
 from app.database.connection import Base
+from app.models.base import BaseEntity
 from app.models.product import Product
 from app.models.warehouse import Warehouse
 from app.models.distributor import Distributor
@@ -12,6 +13,7 @@ from app.models.vehicle import Vehicle, VehicleType, VehicleStatus
 
 __all__ = [
     "Base",
+    "BaseEntity",
     "Product",
     "Warehouse",
     "Distributor",

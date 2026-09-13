@@ -93,5 +93,37 @@ Once the server is running, you can explore the interactive API docs:
 
 ---
 
+## 🏗️ Object-Oriented Architecture (4 OOP Pillars)
+
+The platform is designed following core Object-Oriented Programming (OOP) principles:
+
+1. **Encapsulation**:
+   - Domain logic and business rules are encapsulated directly within models (e.g., `Order.transition_to()`, `Order.cancel()`, `Inventory.reserve()`, `Inventory.release()`, `Vehicle.can_accommodate()`).
+   - Private and protected helper methods safeguard state transitions and internal invariants.
+2. **Abstraction**:
+   - Abstract Base Classes (`BaseAgent`, `BaseService`, `AbstractAllocationStrategy`, `ReasoningEngine`) define explicit contracts with `@abstractmethod`.
+   - High-level modules interact with high-level interfaces rather than low-level database or algorithm details.
+3. **Inheritance**:
+   - Shared behaviors and attributes are inherited across the codebase:
+     - `BaseEntity` ➔ `Order`, `Product`, `Warehouse`, `Distributor`, `Inventory`, `Vehicle`.
+     - `BaseService[T]` ➔ `OrderService`, `ProductService`, `WarehouseService`, `InventoryService`, `LogisticsService`.
+     - `BaseAgent` ➔ `OrderAgent`, `InventoryAgent`, `AllocationAgent`, `LogisticsAgent`.
+4. **Polymorphism**:
+   - Multi-agent orchestration through unified `BaseAgent.run()` interface.
+   - Interchangeable fulfillment strategies (`SingleSourceAllocationStrategy` vs. `MultiNodeProximityAllocationStrategy`) via Strategy Pattern.
+   - Dynamic decision engines (`HeuristicReasoningEngine` vs. `LLMReasoningEngine`).
+
+---
+
+## 🧪 Testing
+
+Run the automated test suite verifying all 4 OOP pillars and end-to-end multi-agent flows:
+
+```bash
+python -m unittest tests/test_oop_architecture.py -v
+```
+
+---
+
 ## 📄 License
 MIT License
